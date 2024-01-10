@@ -25,23 +25,31 @@ function App() {
 
   const [myContract, setContract] = useState(null);
 
-  useEffect(async () => {
-    const { address, status } = await getCurrentWalletConnected();
+  useEffect(() => {
+    const init = async () => {
+      const { address, status } = await getCurrentWalletConnected();
 
-    setWallet(address);
-    setStatus(status);
+      setWallet(address);
+      setStatus(status);
 
-    addWalletListener();
+      addWalletListener();
+    }
+    init();
   }, []);
 
-  useEffect(async () => {
+  useEffect(() => {
+    const initContract = async () => {
       const myContract = await new web3.eth.Contract(contractAbi, contractAddress);
       setContract(myContract);
+    }
+    initContract();
   }, []);
 
   useEffect(() => {
     getCurrentNetwork();
-    window.ethereum.on('chainChanged', getCurrentNetwork);
+    if (window.ethereum) {
+      window.ethereum.on('chainChanged', getCurrentNetwork);
+    }
   }, []);
 
   const getCurrentNetwork = async () => {
@@ -53,9 +61,8 @@ function App() {
             setNetworkName('Ethereum Mainnet');
             break;
           case "7171":
-            setNetworkName('Bitrock Network'); // Added case for Bitrock network
+            setNetworkName('Bitrock Network');
             break;
-          // Add other networks here
           default:
             setNetworkName('Unknown');
         }
@@ -63,10 +70,11 @@ function App() {
         console.error(err);
         setNetworkName('Error');
       }
+    } else {
+      setNetworkName('MetaMask not installed');
     }
   };
-  
-  
+
   function addWalletListener() {
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", (accounts) => {
@@ -79,28 +87,21 @@ function App() {
         }
       });
     } else {
-      setStatus(
-        <p>
-          {" "}
-          {" "}
-          <a target="_blank" href={`https://metamask.io/download.html`}>
-            You must install Metamask in your browser.
-          </a>
-        </p>
-      );
+      setStatus("MetaMask is not installed. Please install it to interact with this app.");
     }
   }
 
   function incrementQuantity() {
-    if(quantityIdx < 4){
+    if (quantityIdx < 4) {
       quantityIdx = quantityIdx + 1;
       setQuantityIdx(quantityIdx);
       setQuantity(allowedQuantities[quantityIdx]);
     }
   }
+
   function decrementQuantity() {
-    if(quantityIdx > 0){
-      quantityIdx = quantityIdx -1 ;
+    if (quantityIdx > 0) {
+      quantityIdx = quantityIdx - 1;
       setQuantityIdx(quantityIdx);
       setQuantity(allowedQuantities[quantityIdx]);
     }
@@ -113,21 +114,23 @@ function App() {
   };
 
   const onMintPressed = async () => {
+    if (!window.ethereum) {
+      setStatus("MetaMask is not installed. Please install it to interact with this app.");
+      return;
+    }
     if (networkName !== 'Bitrock Network') {
-      // If not on Bitrock Network, display an error message and return early.
       setStatus("Please switch to the Bitrock Network to mint.");
       return;
     }
-    if(walletAddress === ""){
+    if (walletAddress === "") {
       setStatus("Please connect your wallet on the top right.")
-    }
-    else{
+    } else {
       const { success, status } = await mintNFT(myContract, walletAddress, quantity, priceMap[quantity]);
       setStatus(status);
     }
   };
 
-  // INERACT.js //
+  // INTERACT.js //
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
@@ -147,17 +150,7 @@ function App() {
     } else {
       return {
         address: "",
-        status: (
-          <span>
-            <p>
-              {" "}
-              {" "}
-              <a target="_blank" href={`https://metamask.io/download.html`}>
-                You must install Metamask in your browser.
-              </a>
-            </p>
-          </span>
-        ),
+        status: "MetaMask is not installed. Please install it to interact with this app.",
       };
     }
   };
@@ -188,17 +181,7 @@ function App() {
     } else {
       return {
         address: "",
-        status: (
-          <span>
-            <p>
-              {" "}
-              {" "}
-              <a target="_blank" href={`https://metamask.io/download.html`}>
-                You must install Metamask in your browser.
-              </a>
-            </p>
-          </span>
-        ),
+        status: "MetaMask is not installed. Please install it to interact with this app.",
       };
     }
   };
@@ -230,11 +213,11 @@ function App() {
 
         <div className="Minter">
         
-          <nav class="navbar">
-              <div class="navbarcontainer">
+          <nav className="navbar">
+              <div className="navbarcontainer">
               <a href="https://punkrocksnft.xyz/" target="_blank" rel="noopener noreferrer" className="h2-link"><h2 className="h2">Punk Rocks</h2></a>
               </div>
-              <button class="btn-2 color-1" id="walletButton" onClick={connectWalletPressed}>
+              <button className="btn-2 color-1" id="walletButton" onClick={connectWalletPressed}>
                 {walletAddress.length > 0 ? (
                 String(walletAddress).substring(0, 5) +
                 "..." +
@@ -246,16 +229,16 @@ function App() {
           
           </nav>
 
-          <section class="mint" id="mint">
+          <section className="mint" id="mint">
             <img src="./images/1.png"></img>
             <div style = {{textAlign: "center", color: "white"}}> {quantity}</div>
-            <div class="row">
+            <div className="row">
               <button style = {{color: "red", width: "20px"}}onClick={decrementQuantity}>-</button>
               <button style = {{color: "red", width: "20px"}}onClick={incrementQuantity}>+</button>
             </div>
             <p id="status" style={{textAlign: "center", color: "red"}}>{status}</p>
             <br></br>
-            <button class="btn-hover color-1" id="mintButton" onClick={onMintPressed}>MINT</button>
+            <button className="btn-hover color-1" id="mintButton" onClick={onMintPressed}>MINT</button>
             <button className="network-button">Network: {networkName}</button>
           </section>
           </div>
